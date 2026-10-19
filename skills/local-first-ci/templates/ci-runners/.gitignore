@@ -1,0 +1,2 @@
+# The short-lived registration token that register.sh writes and deletes.
+.runner.env

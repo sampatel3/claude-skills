@@ -1,0 +1,12 @@
+# Optional: for a Linux VM. A Mac host uses the launchd agent in ../launchd/.
+# Starts ci-runner-maintenance.service once a day; Persistent= catches up after downtime.
+[Unit]
+Description=Daily CI runner host maintenance
+
+[Timer]
+OnCalendar=*-*-* 04:30:00
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

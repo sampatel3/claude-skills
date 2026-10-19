@@ -1,0 +1,25 @@
+# Local-first CI: download a prebuilt tool for the runner's architecture. GitHub-hosted runners
+# are X64; a self-hosted runner in Colima on an Apple silicon Mac is ARM64. Pin each asset by
+# its own SHA-256 from the release's checksums file. This example installs Vale; change the
+# version, the asset names and the checksums for your tool.
+steps:
+  - name: Install Vale for this runner's architecture
+    shell: bash
+    env:
+      VALE_VERSION: 3.23.0
+      VALE_SHA256_X64: cc35445a45186b8f0b01e11c01359694cf941e72cf6ab0fc44774f0e54c9d5fc
+      VALE_SHA256_ARM64: 45720aadcb01401ac394641287a2c74e094045a89a450f5edcf98c8969df0884
+    run: |
+      set -euo pipefail
+      work="$RUNNER_TEMP/vale"
+      mkdir -p "$work/bin"
+      case "${RUNNER_ARCH:-X64}" in
+        X64) asset="Linux_64-bit"; sha="$VALE_SHA256_X64" ;;
+        ARM64) asset="Linux_arm64"; sha="$VALE_SHA256_ARM64" ;;
+        *) echo "Unsupported runner architecture: ${RUNNER_ARCH}"; exit 1 ;;
+      esac
+      curl -fsSL -o "$work/vale.tar.gz" "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_${asset}.tar.gz"
+      echo "${sha}  $work/vale.tar.gz" | sha256sum --check --strict
+      tar -xzf "$work/vale.tar.gz" -C "$work/bin" vale
+      echo "$work/bin" >> "$GITHUB_PATH"
+      "$work/bin/vale" --version

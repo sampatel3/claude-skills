@@ -1,0 +1,7 @@
+# Local-first CI: every job reads its runner from the CI_RUNS_ON repository variable.
+#   CI_RUNS_ON=local-ci   the self-hosted runners from the ci-runners kit
+#   not set               GitHub-hosted ubuntu-24.04, which uses the account's Actions minutes
+# Deleting the variable is the whole fallback; no workflow changes.
+jobs:
+  test:
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-24.04' }}

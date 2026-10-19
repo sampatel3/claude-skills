@@ -24,6 +24,14 @@ every conversation, which means it cannot live inside any one of them.
   rather than leaving them to be re-argued. The skill ends with the list for the
   project it came from, as a worked example.
 
+- **`local-first-ci`** — the standard for GitHub Actions that keeps minutes and
+  artifact storage small: jobs on self-hosted runners chosen by a repository
+  variable, with GitHub-hosted runners as the fallback; cancelled superseded
+  runs; three-day pull request artifacts; heavy diagnostics uploaded only on
+  failure; a daily artifact and cache cleanup; a runner image matched to
+  `ubuntu-24.04`; and architecture-aware tool downloads. It ships templates for
+  the cleanup workflow and script, the runner kit, and the workflow snippets.
+
 ## Install
 
 ```bash

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Runs host-maintenance.sh once a day at 04:30. Template from the local-first-ci skill.
+  Replace __LABEL__ with a reverse-DNS label unique to this repository, such as
+  com.example.myrepo-runner-maintenance, __KIT_DIR__ with the absolute path of the kit, and
+  __HOME__ with your home directory. Then save the file as
+  ~/Library/LaunchAgents/__LABEL__.plist. If the Mac is asleep at 04:30, launchd runs the job
+  when it wakes. The Docker context comes from kit.env.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>__LABEL__</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>__KIT_DIR__/host-maintenance.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>4</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>__HOME__/Library/Logs/__LABEL__.log</string>
+  <key>StandardErrorPath</key>
+  <string>__HOME__/Library/Logs/__LABEL__.log</string>
+</dict>
+</plist>

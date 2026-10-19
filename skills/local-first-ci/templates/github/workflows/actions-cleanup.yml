@@ -1,0 +1,47 @@
+name: Actions storage cleanup
+
+# Local-first CI: once a day, delete the Actions artifacts and caches that nobody reads again,
+# so artifact storage stays far below the account quota. .github/scripts/actions-cleanup.mjs
+# holds the rules: artifacts from default-branch runs are never deleted; artifacts from pull
+# request and push runs on other branches go when their pull request closes or after 48 hours;
+# caches go when their branch or pull request is gone. The job summary shows what remains.
+#
+# A manual run is a dry run unless you clear the dry_run box.
+on:
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List what would be deleted, and delete nothing
+        required: false
+        type: boolean
+        default: true
+
+# actions: write deletes artifacts and caches; pull-requests: read tells closed pull requests
+# from open ones; contents: read checks out the script and lists branches.
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: actions-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ${{ vars.CI_RUNS_ON || 'ubuntu-24.04' }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+      - name: Delete stale artifacts and caches, and summarize storage
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+        run: node .github/scripts/actions-cleanup.mjs

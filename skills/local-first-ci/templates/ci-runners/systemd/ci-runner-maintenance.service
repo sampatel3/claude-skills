@@ -1,0 +1,13 @@
+# Optional: for a Linux VM. A Mac host uses the launchd agent in ../launchd/.
+# Runs host-maintenance.sh against the VM's own Docker daemon. Install the kit at
+# /opt/ci-runners/<repo>, change the path below to match, and rename both units to
+# <prefix>-runner-maintenance if the VM serves more than one repository.
+[Unit]
+Description=CI runner host maintenance
+Wants=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+Environment=RUNNER_DOCKER_CONTEXT=default
+ExecStart=/bin/bash /opt/ci-runners/myrepo/host-maintenance.sh

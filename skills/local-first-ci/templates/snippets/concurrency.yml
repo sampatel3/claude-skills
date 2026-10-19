@@ -1,0 +1,7 @@
+# Local-first CI: a new push to a pull request cancels that pull request's older run of this
+# workflow. Every other run (a push to the default branch, a manual or scheduled run) gets a
+# group of its own, so it is never cancelled or replaced. Put this at the top level of every
+# pull request workflow. Leave it off deploy workflows, which must never be cancelled mid-run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}

@@ -1,0 +1,73 @@
+# Self-hosted GitHub Actions runners for one repository (local-first CI).
+# Template from the local-first-ci skill. Settings are in kit.env.
+#
+# Start runners with ./register.sh, never with a bare `docker compose up`: the script fetches a
+# short-lived registration token, writes it to .runner.env (mode 0600) for this file to read, and
+# deletes the file once the containers have started. For any other Compose command, pass the
+# settings file: `docker compose --env-file kit.env ps`.
+#
+# Every runner carries the label local-ci, which the repository variable CI_RUNS_ON=local-ci
+# selects. The default `up` starts one runner, runner-ci-1, because memory is the limit on a
+# shared Colima VM. Each extra runner is a profile you start by name, with its own work directory.
+#
+# Each work directory is mounted at the same path in the container as on the Docker host, so a
+# job's `docker run -v $PWD:...` resolves to the same files. The runner's registration lives in a
+# named volume, so a restart or a recreated container reuses it without a new token.
+name: ${RUNNER_PREFIX:?set RUNNER_PREFIX in kit.env}-runners
+
+x-runner: &runner
+  # Built from runner-image/Dockerfile: myoung34/github-runner on Ubuntu 24.04 with the tool
+  # versions of GitHub's ubuntu-24.04 runners. It builds for the host's architecture (arm64 on
+  # Colima on Apple silicon, amd64 on an x86 VM). register.sh builds it before it starts a runner.
+  image: ${RUNNER_PREFIX}-runner:noble
+  build:
+    context: ./runner-image
+  network_mode: host
+  restart: unless-stopped
+  env_file:
+    - path: .runner.env
+      required: false
+  environment: &runner-environment
+    REPO_URL: https://github.com/${RUNNER_REPO:?set RUNNER_REPO in kit.env}
+    RUNNER_SCOPE: repo
+    DISABLE_AUTO_UPDATE: '1'
+    CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner/data
+    DISABLE_AUTOMATIC_DEREGISTRATION: 'true'
+
+services:
+  runner-ci-1:
+    <<: *runner
+    container_name: ${RUNNER_PREFIX}-runner-1
+    environment:
+      <<: *runner-environment
+      RUNNER_NAME: ${RUNNER_PREFIX}-local-1
+      RUNNER_WORKDIR: /tmp/${RUNNER_PREFIX}-runner-1
+      LABELS: local-ci
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/${RUNNER_PREFIX}-runner-1:/tmp/${RUNNER_PREFIX}-runner-1
+      - runner-ci-1-registration:/runner/data
+
+  # A second runner, for a host with memory to spare: ./register.sh runner-ci-2
+  runner-ci-2:
+    <<: *runner
+    profiles: [ci-2]
+    container_name: ${RUNNER_PREFIX}-runner-2
+    environment:
+      <<: *runner-environment
+      RUNNER_NAME: ${RUNNER_PREFIX}-local-2
+      RUNNER_WORKDIR: /tmp/${RUNNER_PREFIX}-runner-2
+      LABELS: local-ci
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/${RUNNER_PREFIX}-runner-2:/tmp/${RUNNER_PREFIX}-runner-2
+      - runner-ci-2-registration:/runner/data
+
+# host-maintenance.sh never removes a volume labelled ci-runners.keep=true.
+volumes:
+  runner-ci-1-registration:
+    labels:
+      ci-runners.keep: 'true'
+  runner-ci-2-registration:
+    labels:
+      ci-runners.keep: 'true'

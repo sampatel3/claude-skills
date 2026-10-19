@@ -1,0 +1,27 @@
+# Local-first CI: the upload pair. Receipts, results and logs go up on every run; HTML reports,
+# traces and screenshots go up only when a step fails. Pull request artifacts expire after
+# three days, default-branch artifacts after 90. Replace the paths with the job's own.
+steps:
+  - name: Upload the receipt and results
+    if: ${{ always() }}
+    uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    with:
+      name: ${{ github.job }}-results
+      path: |
+        test-output/
+        !test-output/**/playwright-report/**
+        !test-output/**/test-results/**
+      if-no-files-found: warn
+      retention-days: ${{ github.event_name == 'pull_request' && 3 || 90 }}
+  - name: Upload the failure diagnostics
+    if: ${{ failure() }}
+    uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    with:
+      name: ${{ github.job }}-failure-diagnostics
+      path: |
+        playwright-report/
+        test-results/
+        test-output/**/playwright-report/
+        test-output/**/test-results/
+      if-no-files-found: ignore
+      retention-days: ${{ github.event_name == 'pull_request' && 3 || 90 }}
